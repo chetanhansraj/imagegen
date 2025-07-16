@@ -323,10 +323,7 @@ def test_connection():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
-@app.route('/images/<filename>')
-def serve_image(filename):
-    """Serve generated images"""
-    return send_from_directory(OUTPUT_DIR, filename)
+
 
 @app.route('/list-images', methods=['GET'])
 def list_images():
