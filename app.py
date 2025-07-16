@@ -351,6 +351,58 @@ def health_check():
     """Health check endpoint for Railway"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
+@app.route('/gallery')
+def gallery():
+    """Return list of generated images"""
+    try:
+        import os
+        
+        # Ensure directory exists
+        OUTPUT_DIR = 'generated_images'
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR, exist_ok=True)
+            return jsonify({'images': [], 'count': 0})
+        
+        # Get all image files
+        files = os.listdir(OUTPUT_DIR)
+        image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))]
+        
+        # Format for frontend
+        images = []
+        for filename in sorted(image_files, reverse=True):  # Newest first
+            # Try to extract prompt from filename or use default
+            prompt = filename.replace('.webp', '').replace('.png', '').replace('.jpg', '').replace('_', ' ')
+            if len(prompt) > 50:
+                prompt = prompt[:50] + "..."
+            
+            images.append({
+                'filename': filename,
+                'prompt': prompt
+            })
+        
+        response = jsonify({
+            'images': images,
+            'count': len(images)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        print(f"Gallery error: {e}")
+        response = jsonify({'error': str(e), 'images': [], 'count': 0})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@app.route('/images/<filename>')
+def serve_image(filename):
+    """Serve individual images"""
+    try:
+        response = send_from_directory('generated_images', filename)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+    except Exception as e:
+        return jsonify({'error': 'Image not found'}), 404
+
 if __name__ == '__main__':
     print("🎨 Starting AI Image Generator for Railway...")
     print(f"📁 Images will be saved to: {os.path.abspath(OUTPUT_DIR)}")
