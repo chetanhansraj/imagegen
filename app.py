@@ -348,18 +348,23 @@ def health_check():
     """Health check endpoint for Railway"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
-@app.route('/gallery', methods=['GET'])
-def gallery():
-    """Return list of generated images"""
+# EMERGENCY GALLERY ROUTE - FORCED UPDATE
+@app.route('/gallery', methods=['GET', 'POST'])
+def emergency_gallery():
+    """Emergency gallery route - force deployment"""
     try:
-        # Ensure directory exists
+        import os
+        
+        # Use the same OUTPUT_DIR as defined at the top
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR, exist_ok=True)
-            return jsonify({'images': [], 'count': 0})
+            return jsonify({'images': [], 'count': 0, 'message': 'No images directory'})
         
         # Get all image files
         files = os.listdir(OUTPUT_DIR)
         image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))]
+        
+        print(f"🖼️ GALLERY DEBUG: Found {len(image_files)} images in {OUTPUT_DIR}")
         
         # Format for frontend
         images = []
@@ -373,20 +378,40 @@ def gallery():
                 'prompt': prompt
             })
         
-        print(f"Gallery found {len(images)} images")
-        
-        response = jsonify({
+        response_data = {
             'images': images,
-            'count': len(images)
-        })
+            'count': len(images),
+            'directory': OUTPUT_DIR,
+            'all_files': files,
+            'debug': 'Emergency gallery route working!'
+        }
+        
+        response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         return response
         
     except Exception as e:
-        print(f"Gallery error: {e}")
-        response = jsonify({'error': str(e), 'images': [], 'count': 0})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 500
+        print(f"🚨 GALLERY ERROR: {e}")
+        error_response = jsonify({
+            'error': str(e), 
+            'images': [], 
+            'count': 0,
+            'debug': 'Emergency gallery route failed'
+        })
+        error_response.headers.add('Access-Control-Allow-Origin', '*')
+        return error_response, 500
+
+# Test route to verify deployment
+@app.route('/deployment-test')
+def deployment_test():
+    """Test if new deployment is working"""
+    return jsonify({
+        'message': 'NEW DEPLOYMENT IS ACTIVE!',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2025-07-17-emergency-fix'
+    })
 
 @app.route('/images/<filename>')
 def serve_image(filename):
