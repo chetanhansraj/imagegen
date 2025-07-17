@@ -348,14 +348,11 @@ def health_check():
     """Health check endpoint for Railway"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
-@app.route('/gallery')
+@app.route('/gallery', methods=['GET'])
 def gallery():
     """Return list of generated images"""
     try:
-        import os
-        
         # Ensure directory exists
-        OUTPUT_DIR = 'generated_images'
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             return jsonify({'images': [], 'count': 0})
@@ -366,8 +363,7 @@ def gallery():
         
         # Format for frontend
         images = []
-        for filename in sorted(image_files, reverse=True):  # Newest first
-            # Try to extract prompt from filename or use default
+        for filename in sorted(image_files, reverse=True):
             prompt = filename.replace('.webp', '').replace('.png', '').replace('.jpg', '').replace('_', ' ')
             if len(prompt) > 50:
                 prompt = prompt[:50] + "..."
@@ -376,6 +372,8 @@ def gallery():
                 'filename': filename,
                 'prompt': prompt
             })
+        
+        print(f"Gallery found {len(images)} images")
         
         response = jsonify({
             'images': images,
